@@ -1,6 +1,6 @@
 [
     {
-        "outputFile": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview-reactive\\build\\intermediates\\incremental\\mergeReleaseResources\\merged.dir\\values\\values.xml",
+        "outputFile": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview-reactive\\build\\intermediates\\incremental\\mergeReleaseResources\\merged.dir\\values\\values.xml",
         "map": [
             {
                 "to": {
@@ -961,7 +961,7 @@
                     "endOffset": 3468
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 2,
                         "startColumn": 4,
@@ -1322,7 +1322,7 @@
                     "endOffset": 4791
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 3,
                         "startColumn": 4,
@@ -3203,7 +3203,7 @@
                     "endOffset": 32269
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 9,
                         "startColumn": 4,
@@ -3222,7 +3222,7 @@
                     "endOffset": 32322
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 10,
                         "startColumn": 4,
@@ -3241,7 +3241,7 @@
                     "endOffset": 32376
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 11,
                         "startColumn": 4,
@@ -4134,7 +4134,7 @@
                     "endOffset": 35484
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 12,
                         "startColumn": 4,
@@ -4153,7 +4153,7 @@
                     "endOffset": 35542
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview-reactive\\src\\main\\res\\values\\strings.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview-reactive\\src\\main\\res\\values\\strings.xml",
                     "position": {
                         "startLine": 1,
                         "startColumn": 4,
@@ -4172,7 +4172,7 @@
                     "endOffset": 35610
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 13,
                         "startColumn": 4,
@@ -4191,7 +4191,7 @@
                     "endOffset": 35689
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 14,
                         "startColumn": 4,
@@ -4210,7 +4210,7 @@
                     "endOffset": 35764
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 15,
                         "startColumn": 4,
@@ -4229,7 +4229,7 @@
                     "endOffset": 35840
                 },
                 "from": {
-                    "file": "C:\\Users\\Stijn\\AndroidStudioProjects\\PatternLockView\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
+                    "file": "C:\\Users\\Stijn\\Documents\\GitHub\\pattern_strength_visualizer\\patternlockview\\build\\intermediates\\bundles\\default\\res\\values\\values.xml",
                     "position": {
                         "startLine": 16,
                         "startColumn": 4,

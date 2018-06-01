@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="true"
+        jar="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="c323c36ecc68965c4cfb460f7721113d2b61ed03">
+        <dex dex="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run_efc7348ac2195bcf9e1d6397fccf379ae3a96e9a\classes.dex" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\patternlockview\build\intermediates\bundles\default\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.2"
+        sha1="5bf493b9a920e37716eb5a380c636fe59efe0d73">
+        <dex dex="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\app\build\intermediates\pre-dexed\debug\classes_6d16154a0ada5fd37cc50ca9ec2c3ed1de07b6cc.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\patternlockview-reactive\build\intermediates\bundles\default\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.2"
+        sha1="770c657fc4d803f7e6ead8046694827fc8be4230">
+        <dex dex="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\app\build\intermediates\pre-dexed\debug\classes_2b729b772838c3ce5e491c41a9e870cf3fb4bbeb.jar" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.2"
+        sha1="ba4699797d2d6a9f34f8aae287ab0310c5600068">
+        <dex dex="C:\Users\Stijn\AndroidStudioProjects\PatternLockView\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_b7fc6cd1a469de1234d3d7a073805fda12820a66\classes.dex" />
+    </item>
+
+</items>

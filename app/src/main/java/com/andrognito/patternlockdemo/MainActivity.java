@@ -1,10 +1,16 @@
 package com.andrognito.patternlockdemo;
 
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.andrognito.patternlockview.PatternLockView;
 import com.andrognito.patternlockview.listener.PatternLockViewListener;
@@ -32,12 +38,41 @@ public class MainActivity extends AppCompatActivity {
         public void onProgress(List<PatternLockView.Dot> progressPattern) {
             Log.d(getClass().getName(), "Pattern progress: " +
                     PatternLockUtils.patternToString(mPatternLockView, progressPattern));
+            TextView patternInfo = (TextView) findViewById(R.id.patternText);
+            patternInfo.setText("" + progressPattern);
+            ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
+            TextView strengthText = (TextView) findViewById(R.id.strengthText);
+            if(progressPattern.size() <= 2) {
+                progressBar.setProgress(33);
+                progressBar.getProgressDrawable().setColorFilter(
+                        Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
+                strengthText.setText("WEAK");
+            } else if(progressPattern.size() <= 4) {
+                progressBar.setProgress(67);
+                progressBar.getProgressDrawable().setColorFilter(
+                        Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
+                strengthText.setText("MEDIUM");
+            } else {
+                progressBar.setProgress(100);
+                progressBar.getProgressDrawable().setColorFilter(
+                        Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
+                strengthText.setText("STRONG");
+            }
         }
 
         @Override
         public void onComplete(List<PatternLockView.Dot> pattern) {
             Log.d(getClass().getName(), "Pattern complete: " +
                     PatternLockUtils.patternToString(mPatternLockView, pattern));
+            Button button = (Button) findViewById(R.id.refreshBtn);
+            button.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    Intent intent = getIntent();
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    finish();
+                    startActivity(intent);
+                }
+            });
         }
 
         @Override
@@ -56,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
         mPatternLockView = (PatternLockView) findViewById(R.id.patter_lock_view);
         mPatternLockView.setDotCount(3);
-        mPatternLockView.setDotNormalSize((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_dot_size));
+        //mPatternLockView.setDotNormalSize((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_dot_size));
         mPatternLockView.setDotSelectedSize((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_dot_selected_size));
         mPatternLockView.setPathWidth((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_path_width));
         mPatternLockView.setAspectRatioEnabled(true);
@@ -70,30 +105,5 @@ public class MainActivity extends AppCompatActivity {
         mPatternLockView.setInputEnabled(true);
         mPatternLockView.addPatternLockListener(mPatternLockViewListener);
 
-        RxPatternLockView.patternComplete(mPatternLockView)
-                .subscribe(new Consumer<PatternLockCompleteEvent>() {
-                    @Override
-                    public void accept(PatternLockCompleteEvent patternLockCompleteEvent) throws Exception {
-                        Log.d(getClass().getName(), "Complete: " + patternLockCompleteEvent.getPattern().toString());
-                    }
-                });
-
-        RxPatternLockView.patternChanges(mPatternLockView)
-                .subscribe(new Consumer<PatternLockCompoundEvent>() {
-                    @Override
-                    public void accept(PatternLockCompoundEvent event) throws Exception {
-                        if (event.getEventType() == PatternLockCompoundEvent.EventType.PATTERN_STARTED) {
-                            Log.d(getClass().getName(), "Pattern drawing started");
-                        } else if (event.getEventType() == PatternLockCompoundEvent.EventType.PATTERN_PROGRESS) {
-                            Log.d(getClass().getName(), "Pattern progress: " +
-                                    PatternLockUtils.patternToString(mPatternLockView, event.getPattern()));
-                        } else if (event.getEventType() == PatternLockCompoundEvent.EventType.PATTERN_COMPLETE) {
-                            Log.d(getClass().getName(), "Pattern complete: " +
-                                    PatternLockUtils.patternToString(mPatternLockView, event.getPattern()));
-                        } else if (event.getEventType() == PatternLockCompoundEvent.EventType.PATTERN_CLEARED) {
-                            Log.d(getClass().getName(), "Pattern has been cleared");
-                        }
-                    }
-                });
     }
 }

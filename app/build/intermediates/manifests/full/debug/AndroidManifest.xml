@@ -14,9 +14,11 @@
 
     <application
         android:allowBackup="true"
+        android:debuggable="true"
         android:icon="@drawable/logo"
         android:label="@string/lib_name"
         android:supportsRtl="true"
+        android:testOnly="true"
         android:theme="@style/AppTheme" >
         <activity android:name="com.andrognito.patternlockdemo.MainActivity" >
             <intent-filter>

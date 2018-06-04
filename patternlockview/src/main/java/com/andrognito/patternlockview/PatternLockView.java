@@ -1162,7 +1162,7 @@ public class PatternLockView extends View {
             }
         }
 
-        private Dot(int row, int column) {
+        public Dot(int row, int column) {
             checkRange(row, column);
             this.mRow = row;
             this.mColumn = column;

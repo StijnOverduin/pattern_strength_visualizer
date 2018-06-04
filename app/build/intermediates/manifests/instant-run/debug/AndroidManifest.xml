@@ -14,9 +14,11 @@
 
     <application
         android:allowBackup="true"
+        android:debuggable="true"
         android:icon="@drawable/logo"
         android:label="@string/lib_name"
         android:supportsRtl="true"
+        android:testOnly="true"
         android:theme="@style/AppTheme" >
         <activity android:name="com.andrognito.patternlockdemo.MainActivity" >
             <intent-filter>
@@ -26,9 +28,10 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="com.android.tools.fd.runtime.InstantRunService"
-            android:exported="true" />
+        <provider
+            android:name="com.android.tools.ir.server.InstantRunContentProvider"
+            android:authorities="com.andrognito.patternlockdemo.com.android.tools.ir.server.InstantRunContentProvider"
+            android:multiprocess="true" />
     </application>
 
 </manifest>

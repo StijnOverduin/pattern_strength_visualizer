@@ -1257,6 +1257,7 @@ public class PatternLockView extends View {
             mColumn = in.readInt();
             mRow = in.readInt();
         }
+
     }
 
     /**

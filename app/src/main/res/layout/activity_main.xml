@@ -43,21 +43,26 @@
         app:dotNormalSize="20dp"
         app:dotSelectedSize="20dp" />
 
-    <EditText
+    <TextView
         android:id="@+id/patternText"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:ems="10"
-        android:inputType="textMultiLine" />
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
+        android:fontFamily="sans-serif-thin"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18dp" />
 
-    <EditText
-        android:id="@+id/debugText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:ems="10"
-        android:inputType="textMultiLine" />
+    <!--<EditText-->
+        <!--android:id="@+id/debugText"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_marginTop="10dp"-->
+        <!--android:ems="10"-->
+        <!--android:inputType="textMultiLine" />-->
 
     <Button
         android:id="@+id/refreshBtn"

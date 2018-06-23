@@ -1135,7 +1135,7 @@ public class PatternLockView extends View {
         }
     }
 
-    private void drawCircle(Canvas canvas, float centerX, float centerY,
+    public void drawCircle(Canvas canvas, float centerX, float centerY,
                             float size, boolean partOfPattern, float alpha) {
         mDotPaint.setColor(getCurrentColor(partOfPattern));
         mDotPaint.setAlpha((int) (alpha * 255));

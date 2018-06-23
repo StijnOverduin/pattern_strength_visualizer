@@ -25,12 +25,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
     private PatternLockView mPatternLockView;
 
     private Map<String, PatternLockView.Dot> allNodes = new HashMap<>();
+    private Map<PatternLockView.Dot, String> suggestionNodes = new HashMap<>();
     private Map<Pair<PatternLockView.Dot, PatternLockView.Dot>, ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>>> corner = new HashMap<>();
     private ArrayList<PatternLockView.Dot> cornerNodes = new ArrayList<>();
 
@@ -38,6 +40,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onStarted() {
             Log.d(getClass().getName(), "Pattern drawing started");
+            TextView strengthText = (TextView) findViewById(R.id.strengthText);
+            strengthText.setText("");
+            ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
+            progressBar.setProgress(0);
+            TextView patternInfo = (TextView) findViewById(R.id.patternText);
+            patternInfo.setText("");
+
         }
 
         @Override
@@ -45,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(getClass().getName(), "Pattern progress: " +
                     PatternLockUtils.patternToString(mPatternLockView, progressPattern));
             TextView patternInfo = (TextView) findViewById(R.id.patternText);
-            patternInfo.setText("" + progressPattern);
+            //patternInfo.setText("" + progressPattern);
             ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
             TextView strengthText = (TextView) findViewById(R.id.strengthText);
 
@@ -70,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         @Override
         public void onComplete(List<PatternLockView.Dot> pattern) {
+            TextView patternInfo = (TextView) findViewById(R.id.patternText);
             Log.d(getClass().getName(), "Pattern complete: " +
                     PatternLockUtils.patternToString(mPatternLockView, pattern));
             Button button = (Button) findViewById(R.id.refreshBtn);
@@ -81,33 +91,40 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 }
             });
-            TextView debugInfo = (TextView) findViewById(R.id.debugText);
-            int nrDots = pattern.size();
+           // TextView debugInfo = (TextView) findViewById(R.id.debugText);
             double strength = calculateStrength(pattern);
+            if(pattern.size() > 3) {
 
-            ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
-            TextView strengthText = (TextView) findViewById(R.id.strengthText);
-            strength = (strength / 46) * 100;
+                ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
+                TextView strengthText = (TextView) findViewById(R.id.strengthText);
+                //strength = (strength / 20) * 100;
+                progressBar.setMax(14);
 
-            if(strength < 40) {
-                progressBar.setProgressTintList(ColorStateList.valueOf(Color.RED));
-                strengthText.setText("WEAK");
-                progressBar.setProgress((int) strength);
-            } else if(strength < 60) {
-                progressBar.setProgressTintList(ColorStateList.valueOf(Color.YELLOW));
-                strengthText.setText("MEDIUM");
-                progressBar.setProgress((int) strength);
-            } else {
-                progressBar.setProgressTintList(ColorStateList.valueOf(Color.GREEN));
-                progressBar.setProgress((int) strength);
-                strengthText.setText("STRONG");
+                if(strength < 5.5) {
+                    progressBar.setProgressTintList(ColorStateList.valueOf(Color.RED));
+                    strengthText.setText("WEAK");
+                    progressBar.setProgress((int) strength);
+                } else if(strength < 9) {
+                    progressBar.setProgressTintList(ColorStateList.valueOf(Color.YELLOW));
+                    strengthText.setText("MEDIUM");
+                    progressBar.setProgress((int) strength);
+                } else if(strength < 14) {
+                    progressBar.setProgressTintList(ColorStateList.valueOf(Color.GREEN));
+                    strengthText.setText("STRONG");
+                    progressBar.setProgress((int) strength);
+                } else {
+                    progressBar.setProgressTintList(ColorStateList.valueOf(Color.GREEN));
+                    progressBar.setProgress((int) strength);
+                    strengthText.setText("VERY STRONG");
+                }
             }
-            debugInfo.setText("" + strength);
-            //debugInfo.setText("passCountStr = " + passCountStr + " passCountDia = " + passCountDia + " length = " + plen + " nrDots = " + nrDots + " starting Dot = " + startingDot + " crossCount = " + crossCount);
 
-            if(nrDots < 9) {
-                PatternLockView.Dot suggestion = giveSuggestion(pattern, strength);
-                debugInfo.setText("" + possibleNodes(pattern));
+            //debugInfo.setText("" + strength);
+
+            if(pattern.size() > 3 && pattern.size() < 9 && strength < 12) {
+                List<PatternLockView.Dot> reachable = reachableNodes(pattern);
+                PatternLockView.Dot suggestion = giveSuggestion(pattern, reachable);
+                patternInfo.setText("Suggested you add the: " + suggestionNodes.get(suggestion));
             }
 
 
@@ -119,18 +136,35 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public PatternLockView.Dot giveSuggestion(List<PatternLockView.Dot> pattern, double currentStrength) {
-        for(Map.Entry<String, PatternLockView.Dot> dot1 : allNodes.entrySet()) {
-
+    public PatternLockView.Dot giveSuggestion(List<PatternLockView.Dot> pattern, List<PatternLockView.Dot> reachable) {
+        double highestStrength = 0;
+        List<PatternLockView.Dot> sameStrength = new ArrayList<>();
+        PatternLockView.Dot suggestedDot;
+        for(PatternLockView.Dot node : reachable) {
+            pattern.add(node);
+            double newStrength = calculateStrength(pattern);
+            if(highestStrength <= newStrength) {
+                if (Math.abs(highestStrength - newStrength) <= 2) {
+                    sameStrength.add(node);
+                } else {
+                    sameStrength.removeAll(sameStrength);
+                    sameStrength.add(node);
+                }
+                highestStrength = newStrength;
+            }
+            pattern.remove(node);
         }
 
-        return allNodes.get("row1COl2");
+        int rnd = new Random().nextInt(sameStrength.size());
+        suggestedDot = sameStrength.get(rnd);
+        return suggestedDot;
     }
 
-    public List<PatternLockView.Dot> possibleNodes(List<PatternLockView.Dot> pattern) {
+    public List<PatternLockView.Dot> reachableNodes(List<PatternLockView.Dot> pattern) {
         PatternLockView.Dot lastNode = pattern.get(pattern.size() - 1);
         Pair<PatternLockView.Dot, PatternLockView.Dot> oppositeLR = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row1Col2"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> oppositeUD = new Pair<>(allNodes.get("rowCol1"), allNodes.get("row2Col1"));
+        Map<String, PatternLockView.Dot> nodes;
         List<PatternLockView.Dot> possibleNodeList = new ArrayList<>();
         if(cornerNodes.contains(lastNode)) {
             for(Map.Entry<String, PatternLockView.Dot> dot1 : allNodes.entrySet()) {
@@ -138,7 +172,23 @@ public class MainActivity extends AppCompatActivity {
                     if(!cornerNodes.contains(dot1.getValue())) {
                         possibleNodeList.add(dot1.getValue());
                     } else {
+                        if(lastNode.equals(allNodes.get("row0Col0"))) {
+                            nodes = allNodes;
+                        } else if(lastNode.equals(allNodes.get("row2Col0"))) {
+                            nodes = transformMap(allNodes, "h");
+                        } else if(lastNode.equals(allNodes.get("row0Col2"))) {
+                            nodes = transformMap(allNodes, "v");
+                        } else {
+                            nodes = transformMap(transformMap(allNodes, "h"), "v");
+                        }
 
+                        if(dot1.getValue().equals(nodes.get("row2Col0")) && pattern.contains(nodes.get("row1Col0"))) {
+                            possibleNodeList.add(dot1.getValue());
+                        } else if(dot1.getValue().equals(nodes.get("row2Col2")) && pattern.contains(nodes.get("row1Col1"))) {
+                            possibleNodeList.add(dot1.getValue());
+                        } else if (dot1.getValue().equals(nodes.get("row0Col2")) && pattern.contains(nodes.get("row0Col1"))) {
+                            possibleNodeList.add(dot1.getValue());
+                        }
                     }
                 }
             }
@@ -168,13 +218,40 @@ public class MainActivity extends AppCompatActivity {
             return possibleNodeList;
     }
 
+    public Map<String, PatternLockView.Dot> transformMap(Map<String, PatternLockView.Dot> m, String type) {
+        Map<String, PatternLockView.Dot> transormedMap = new HashMap<>();
+        Pair<PatternLockView.Dot, PatternLockView.Dot> p;
+        Pair<PatternLockView.Dot, PatternLockView.Dot> tp;
+        if(type.equals("h")) {
+            for(Map.Entry<String, PatternLockView.Dot> entry : m.entrySet()) {
+                p = new Pair<>(entry.getValue(), entry.getValue());
+                tp = transformPairverhor(p, "h");
+                transormedMap.put(entry.getKey(), tp.first);
+            }
+        } else {
+            for(Map.Entry<String, PatternLockView.Dot> entry : m.entrySet()) {
+                p = new Pair<>(entry.getValue(), entry.getValue());
+                tp = transformPairverhor(p, "v");
+                transormedMap.put(entry.getKey(), tp.first);
+            }
+
+        }
+
+        return transormedMap;
+    }
+
     public double calculateStrength(List<PatternLockView.Dot> pattern) {
         int passCountStr = passedTwiceStraight(pattern);
         int passCountDia = passedTwiceDiagonal(pattern);
         double plen = patternLength(pattern);
-        int nrDots = pattern.size();
+        double nrDots = pattern.size();
         int crossCount = crossSections(pattern);
-        double strength =  nrDots * (Math.log(plen + crossCount + passCountDia + passCountStr) / Math.log(2.0));
+        //double strength =  nrDots * (Math.log(plen + crossCount + passCountDia + passCountStr) / Math.log(2.0));
+        double strength =  (nrDots / 2) + (plen/nrDots) + Math.pow(crossCount, 2) + Math.pow((passCountDia + passCountStr), 2);
+        //double strength =  nrDots + Math.log(plen) + crossCount * 2 + (passCountDia + passCountStr) * 3;
+        //TextView debugInfo = (TextView) findViewById(R.id.debugText);
+        int overlapCount = passCountDia + passCountStr;
+        //debugInfo.setText("Overlaps = " + overlapCount + " Length = " + plen + " nrDots = " + nrDots + " Cross sections = " + crossCount + " strength: " + strength);
 
         return strength;
     }
@@ -215,42 +292,6 @@ public class MainActivity extends AppCompatActivity {
         return count;
     }
 
-    public int straightLine(List<PatternLockView.Dot> progressPattern) {
-        int count = 0;
-        for(int i = 0; i + 2 < progressPattern.size(); i++) {
-            int rowSum = progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow() + progressPattern.get(i + 2).getRow();
-            int colSum = progressPattern.get(i).getColumn() - progressPattern.get(i + 1).getColumn() + progressPattern.get(i + 2).getColumn();
-            if (progressPattern.get(i).getColumn() == progressPattern.get(i + 1).getColumn() && progressPattern.get(i).getColumn() == progressPattern.get(i + 2).getColumn()) {
-                if (rowSum == 1) {
-                    count += 1;
-                }
-            } else if (progressPattern.get(i).getRow() == progressPattern.get(i + 1).getRow() && progressPattern.get(i).getRow() == progressPattern.get(i + 2).getRow()) {
-                if (colSum == 1) {
-                    count += 1;
-                }
-            }
-        }
-
-        return count;
-    }
-
-    public int diagonalLine(List<PatternLockView.Dot> progressPattern) {
-        int count = 0;
-        PatternLockView.Dot leftTop = this.allNodes.get("row0Col0");
-        PatternLockView.Dot leftBot = this.allNodes.get("row2Col0");
-        PatternLockView.Dot rightTop = this.allNodes.get("row0Col2");
-        PatternLockView.Dot rightBot = this.allNodes.get("row2Col2");
-        PatternLockView.Dot middle = this.allNodes.get("row1Col1");
-        for (int i = 0; i + 2 < progressPattern.size(); i++) {
-            if (progressPattern.get(i).equals(leftTop) && progressPattern.get(i + 1).equals(middle) && progressPattern.get(i + 2).equals(rightBot) || progressPattern.get(i).equals(rightBot) && progressPattern.get(i + 1).equals(middle) && progressPattern.get(i + 2).equals(leftTop)) {
-                count += 1;
-            }
-            if (progressPattern.get(i).equals(rightTop) && progressPattern.get(i + 1).equals(middle) && progressPattern.get(i + 2).equals(leftBot)|| progressPattern.get(i).equals(leftBot) && progressPattern.get(i + 1).equals(middle) && progressPattern.get(i + 2).equals(rightTop)) {
-                count += 1;
-            }
-        }
-        return count;
-    }
 
     public double patternLength(List<PatternLockView.Dot> progressPattern) {
         double plen = 0;
@@ -276,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
 
     public int crossSections(List<PatternLockView.Dot> progressPattern) {
        int count = 0;
-        TextView debugInfo = (TextView) findViewById(R.id.debugText);
+        //TextView debugInfo = (TextView) findViewById(R.id.debugText);
        for(int i = 0; i + 1 < progressPattern.size(); i++) {
            for(int j = 0; j + 1 < progressPattern.size(); j++ ) {
                PatternLockView.Dot node1b = progressPattern.get(i);
@@ -285,57 +326,55 @@ public class MainActivity extends AppCompatActivity {
                PatternLockView.Dot node2e = progressPattern.get(j + 1);
                Pair<PatternLockView.Dot, PatternLockView.Dot> line1Pair = new Pair<>(node1b, node1e);
                Pair<PatternLockView.Dot, PatternLockView.Dot> line2Pair = new Pair<>(node2b, node2e);
-               if(!equalPairs(line1Pair, line2Pair)) {
+               if(!equalPairsUndirected(line1Pair, line2Pair)) {
                    for(Map.Entry<Pair<PatternLockView.Dot, PatternLockView.Dot>, ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>>> entry : corner.entrySet()) {
-                       if(cornerNodes.contains(entry.getKey().first) || cornerNodes.contains((entry.getKey().second))) {
-                           if(equalPairs(entry.getKey(), line1Pair)) {
-                               debugInfo.setText("hello1" + entry.getKey() + " array : " + entry.getValue());
+                           if(equalPairsDirected(entry.getKey(), line1Pair)) {
                                if(pairInArray(entry.getValue(), line2Pair)) {
+                                   //debugInfo.setText(debugInfo.getText() + "hello1" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
-                           } else if(equalPairs(transformPairverhor(entry.getKey(), "v"), line1Pair)) {
-                               debugInfo.setText(debugInfo.getText() + "hello2");
+                           } else if(equalPairsDirected(transformPairverhor(entry.getKey(), "v"), line1Pair)) {
+                               //debugInfo.setText(debugInfo.getText() + "hello2");
                                if (pairInArray(transformPairArray(entry.getValue(), "v"), line2Pair)) {
-                                   debugInfo.setText(debugInfo.getText() + "hello2");
+                                   //debugInfo.setText(debugInfo.getText() + "hello2" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
-                           } else if(equalPairs(transformPairverhor(entry.getKey(), "h"), line1Pair)) {
-                               debugInfo.setText(debugInfo.getText() + "hello2");
+                           } else if(equalPairsDirected(transformPairverhor(entry.getKey(), "h"), line1Pair)) {
+                               //debugInfo.setText(debugInfo.getText() + "hello2");
                                if(pairInArray(transformPairArray(entry.getValue(), "h"), line2Pair)) {
-                                   debugInfo.setText(debugInfo.getText() + "hello3");
+                                   //debugInfo.setText(debugInfo.getText() + "hello3" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
-                           } else if(equalPairs(transformPairverhor(transformPairverhor(entry.getKey(), "h"), "v"), line1Pair)) {
-                               debugInfo.setText(debugInfo.getText() + "hello2");
-                               if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "h"), "v"), line2Pair)) {
-                                   debugInfo.setText(debugInfo.getText() + "hello4");
+                           } else if(equalPairsDirected(transformPairverhor(transformPairDiag(entry.getKey(), "lbtr"), "v"), line1Pair)) {
+                               //debugInfo.setText(debugInfo.getText() + "hello2");
+                               if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "lbtr"), "v"), line2Pair)) {
+                                  // debugInfo.setText(debugInfo.getText() + "hello4" + " i = " + i + " j = " + j);
+                                   count += 1;
+                               }
+                           } else if(equalPairsDirected(transformPairverhor(transformPairDiag(entry.getKey(), "lbtr"), "h"), line1Pair)) {
+                               //debugInfo.setText(debugInfo.getText() + "hello2");
+                               if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "lbtr"), "h"), line2Pair)) {
+                                  // debugInfo.setText(debugInfo.getText() + "hello5" + " i = " + i + " j = " + j);
+                                   count += 1;
+                               }
+                           } else if(equalPairsDirected(transformPairDiag(transformPairDiag(entry.getKey(), "lbtr"), "rbtl"), line1Pair)) {
+                               //debugInfo.setText(debugInfo.getText() + "hello2");
+                               if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "lbtr"), "rbtl"), line2Pair)) {
+                                 //  debugInfo.setText(debugInfo.getText() + "hello6" + " i = " + i + " j = " + j);
+                                   count += 1;
+                               }
+                           } else if(equalPairsDirected(transformPairDiag(entry.getKey(), "lbtr"), line1Pair)) {
+                               if (pairInArray(transformPairArray(entry.getValue(), "lbtr"), line2Pair)) {
+                                 //  debugInfo.setText(debugInfo.getText() + "hello7" + " i = " + i + " j = " + j);
+                                   count += 1;
+                               }
+                           } else if(equalPairsDirected(transformPairDiag(entry.getKey(), "rbtl"), line1Pair)) {
+                               if(pairInArray(transformPairArray(entry.getValue(), "rbtl"), line2Pair)) {
+                                   //debugInfo.setText("transPair: " + entry.getValue() + " transarr: " + transformPairArray(entry.getValue(), "rbtl"));
+                                  // debugInfo.setText(debugInfo.getText() + "hello8" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
                            }
-                       } else {
-                           if(equalPairs(entry.getKey(), line1Pair)) {
-                               if (pairInArray(entry.getValue(), line2Pair)) {
-                                   debugInfo.setText(debugInfo.getText() + "hello5");
-                                   count += 1;
-                               }
-                           }
-//                           } else if(equalPairs(transformPairDiag(entry.getKey(), "lbtr"), line1Pair)) {
-//                               if (pairInArray(transformPairArray(entry.getValue(), "lbtr"), line2Pair)) {
-//                                   debugInfo.setText(debugInfo.getText() + "hello6");
-//                                   count += 1;
-//                               }
-//                           } else if(equalPairs(transformPairDiag(entry.getKey(), "rbtl"), line1Pair)) {
-//                               if(pairInArray(transformPairArray(entry.getValue(), "rbtl"), line2Pair)) {
-//                                   debugInfo.setText(debugInfo.getText() + "hello7");
-//                                   count += 1;
-//                               }
-//                           } else if(equalPairs(transformPairverhor(entry.getKey(), "v"), line1Pair)) {
-//                               //debugInfo.setText("" + entry.getValue() + "Transformed: " + transformPairArray(entry.getValue(), "v"));
-//                               if(pairInArray(transformPairArray(entry.getValue(), "v"), line2Pair)) {
-//                                   debugInfo.setText(debugInfo.getText() + "hello8");
-//                                   count += 1;
-//                               }
-//                           }
                        }
 
                    }
@@ -344,14 +383,12 @@ public class MainActivity extends AppCompatActivity {
 
            }
 
-       }
-
        count = count/2;
 
        return count;
     }
 
-    public boolean equalPairs(Pair<PatternLockView.Dot, PatternLockView.Dot> pairOne, Pair<PatternLockView.Dot, PatternLockView.Dot> pairTwo) {
+    public boolean equalPairsUndirected(Pair<PatternLockView.Dot, PatternLockView.Dot> pairOne, Pair<PatternLockView.Dot, PatternLockView.Dot> pairTwo) {
         boolean result = false;
 
         if(pairOne.first.equals(pairTwo.first) && pairOne.second.equals(pairTwo.second) ) {
@@ -363,11 +400,21 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
+    public boolean equalPairsDirected(Pair<PatternLockView.Dot, PatternLockView.Dot> pairOne, Pair<PatternLockView.Dot, PatternLockView.Dot> pairTwo) {
+        boolean result = false;
+
+        if(pairOne.first.equals(pairTwo.first) && pairOne.second.equals(pairTwo.second) ) {
+            result = true;
+        }
+
+        return result;
+    }
+
     public boolean pairInArray(ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> array, Pair<PatternLockView.Dot, PatternLockView.Dot> pair) {
         boolean result = false;
 
         for(Pair<PatternLockView.Dot, PatternLockView.Dot> pairs : array) {
-            if(equalPairs(pairs, pair)) {
+            if(equalPairsUndirected(pairs, pair)) {
                 result = true;
             }
         }
@@ -544,6 +591,8 @@ public class MainActivity extends AppCompatActivity {
         Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross5 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross6 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row1Col0"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross7 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row1Col0"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross8 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row1Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross9 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col2"));
         ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option2array = new ArrayList<>();
         option2array.add(option2cross1);
         option2array.add(option2cross2);
@@ -552,16 +601,17 @@ public class MainActivity extends AppCompatActivity {
         option2array.add(option2cross5);
         option2array.add(option2cross6);
         option2array.add(option2cross7);
+        option2array.add(option2cross8);
+        option2array.add(option2cross9);
         corner.put(option2, option2array);
 
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross1 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross2 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross3 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross4 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row0Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross5 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross6 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row0Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross7 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row0Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross1 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row1Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross2 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross3 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross4 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross5 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross6 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
         ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option3array = new ArrayList<>();
         option3array.add(option3cross1);
         option3array.add(option3cross2);
@@ -569,18 +619,7 @@ public class MainActivity extends AppCompatActivity {
         option3array.add(option3cross4);
         option3array.add(option3cross5);
         option3array.add(option3cross6);
-        option3array.add(option3cross7);
         corner.put(option3, option3array);
-
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross1 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row1Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross2 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross3 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col2"));
-//        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option4array = new ArrayList<>();
-//        option4array.add(option4cross1);
-//        option4array.add(option4cross2);
-//        option4array.add(option4cross3);
-//        corner.put(option4, option4array);
 
 
     }
@@ -590,12 +629,12 @@ public class MainActivity extends AppCompatActivity {
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross1 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col0"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross2 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row0Col0"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross3 = new Pair<>(allNodes.get("row1Col2"), allNodes.get("row0Col0"));
-        //Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross4 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row0Col0"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross4 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col2"));
         ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option1array = new ArrayList<>();
         option1array.add(option1cross1);
         option1array.add(option1cross2);
         option1array.add(option1cross3);
-        //option1array.add(option1cross4);
+        option1array.add(option1cross4);
         corner.put(option1, option1array);
 
         Pair<PatternLockView.Dot, PatternLockView.Dot> option2 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row1Col1"));
@@ -606,104 +645,83 @@ public class MainActivity extends AppCompatActivity {
         option2array.add(option2cross2);
         corner.put(option2, option2array);
 
-
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3 = new Pair<>(allNodes.get("row1Col2"), allNodes.get("row2Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross1 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row1Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross2 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row0Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross3 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row1Col0"));
-        //Pair<PatternLockView.Dot, PatternLockView.Dot> option3cross4 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row0Col0"));
-        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option3array = new ArrayList<>();
-        option3array.add(option3cross1);
-        option3array.add(option3cross2);
-        option3array.add(option3cross3);
-        //option3array.add(option3cross4);
-        corner.put(option3, option3array);
-
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option4 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row2Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross1 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross2 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross3 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col2"));
-        //Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross4 = new Pair<>(allNodes.get("row0Col2"), allNodes.get("row2Col0"));
-        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option4array = new ArrayList<>();
-        option4array.add(option4cross1);
-        option4array.add(option4cross2);
-        option4array.add(option4cross3);
-        //option4array.add(option4cross4);
-        corner.put(option4, option4array);
-
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option5 = new Pair<>(allNodes.get("row1Col2"), allNodes.get("row0Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross1 = new Pair<>(allNodes.get("row0Col2"), allNodes.get("row2Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross2 = new Pair<>(allNodes.get("row0Col2"), allNodes.get("row1Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross3 = new Pair<>(allNodes.get("row0Col2"), allNodes.get("row1Col0"));
-        //Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross4 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross1 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross2 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross3 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross4 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row1Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross5 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross6 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row1Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross7 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col0"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross8 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross9 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col1"));
         ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option5array = new ArrayList<>();
         option5array.add(option5cross1);
         option5array.add(option5cross2);
         option5array.add(option5cross3);
-        //option5array.add(option5cross4);
+        option5array.add(option5cross4);
+        option5array.add(option5cross5);
+        option5array.add(option5cross6);
+        option5array.add(option5cross7);
+        option5array.add(option5cross8);
+        option5array.add(option5cross9);
         corner.put(option5, option5array);
 
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option6 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row1Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option6cross1 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option6cross2 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row2Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option6 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row1Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option6cross1 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col2"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option6cross2 = new Pair<>(allNodes.get("row0Col2"), allNodes.get("row2Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option6cross3 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option6cross4 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col0"));
         ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option6array = new ArrayList<>();
         option6array.add(option6cross1);
         option6array.add(option6cross2);
+        option6array.add(option6cross3);
+        option6array.add(option6cross4);
         corner.put(option6, option6array);
 
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option7 = new Pair<>(allNodes.get("row1Col2"), allNodes.get("row1Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option7cross1 = new Pair<>(allNodes.get("row0Col2"), allNodes.get("row2Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option7cross2 = new Pair<>(allNodes.get("row2Col2"), allNodes.get("row0Col1"));
-        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option7array = new ArrayList<>();
-        option7array.add(option7cross1);
-        option7array.add(option7cross2);
-        corner.put(option7, option7array);
 
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option8 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row1Col1"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option8cross1 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> option8cross2 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
-        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option8array = new ArrayList<>();
-        option8array.add(option8cross1);
-        option8array.add(option8cross2);
-        corner.put(option8, option8array);
+    }
 
+    public void makeCrossSectionsMiddle() {
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option1 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row0Col0"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross1 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross2 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross3 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
+        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option1array = new ArrayList<>();
+        option1array.add(option1cross1);
+        option1array.add(option1cross2);
+        option1array.add(option1cross3);
+        corner.put(option1, option1array);
 
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option2 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row1Col0"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross1 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col0"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> option2cross2 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
+        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option2array = new ArrayList<>();
+        option2array.add(option2cross1);
+        option2array.add(option2cross2);
+        corner.put(option2, option2array);
+    }
 
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row2Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross1 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross2 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col1"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross3 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row1Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross4 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row1Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross5 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross6 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col0"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option4cross7 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row1Col1"));
-//        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option4array = new ArrayList<>();
-//        option4array.add(option4cross1);
-//        option4array.add(option4cross2);
-//        option4array.add(option4cross3);
-//        option4array.add(option4cross4);
-//        option4array.add(option4cross5);
-//        option4array.add(option4cross6);
-//        option4array.add(option4cross7);
-//        corner.put(option4, option4array);
-//
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross1 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross2 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col1"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross3 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row2Col1"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross4 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row1Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross5 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col2"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross6 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row1Col1"));
-//        Pair<PatternLockView.Dot, PatternLockView.Dot> option5cross7 = new Pair<>(allNodes.get("row0Col1"), allNodes.get("row2Col0"));
-//        ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> option5array = new ArrayList<>();
-//        option5array.add(option5cross1);
-//        option5array.add(option5cross2);
-//        option5array.add(option5cross3);
-//        option5array.add(option5cross4);
-//        option5array.add(option5cross5);
-//        option5array.add(option5cross6);
-//        option5array.add(option5cross7);
-//        corner.put(option5, option5array);
+    public void makeSuggestionMap() {
+        PatternLockView.Dot row0Col0 = new PatternLockView.Dot(0 ,0);
+        PatternLockView.Dot row0Col1 = new PatternLockView.Dot(0 ,1);
+        PatternLockView.Dot row0Col2 = new PatternLockView.Dot(0 ,2);
+        PatternLockView.Dot row1Col0 = new PatternLockView.Dot(1 ,0);
+        PatternLockView.Dot row1Col1 = new PatternLockView.Dot(1 ,1);
+        PatternLockView.Dot row1Col2 = new PatternLockView.Dot(1 ,2);
+        PatternLockView.Dot row2Col0 = new PatternLockView.Dot(2 ,0);
+        PatternLockView.Dot row2Col1 = new PatternLockView.Dot(2 ,1);
+        PatternLockView.Dot row2Col2 = new PatternLockView.Dot(2 ,2);
+
+        this.suggestionNodes.put(row0Col0, "top left corner node");
+        this.suggestionNodes.put(row0Col1, "top middle node" );
+        this.suggestionNodes.put(row0Col2, "top right corner");
+        this.suggestionNodes.put(row1Col0, "left middle node");
+        this.suggestionNodes.put(row1Col1, "middle node");
+        this.suggestionNodes.put(row1Col2, "right middle node");
+        this.suggestionNodes.put(row2Col0, "bottom left corner node");
+        this.suggestionNodes.put(row2Col1, "bottom middle node");
+        this.suggestionNodes.put(row2Col2, "bottom right corner node");
     }
 
     @Override
@@ -714,8 +732,10 @@ public class MainActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
         makeNodeMap();
+        makeSuggestionMap();
         makeCrossSectionsCorner();
         makeCrossSectionsSideMiddle();
+        makeCrossSectionsMiddle();
         makeCornerList();
         mPatternLockView = (PatternLockView) findViewById(R.id.patter_lock_view);
         mPatternLockView.setDotCount(3);
@@ -727,7 +747,7 @@ public class MainActivity extends AppCompatActivity {
         mPatternLockView.setViewMode(PatternLockView.PatternViewMode.CORRECT);
         mPatternLockView.setDotAnimationDuration(150);
         mPatternLockView.setPathEndAnimationDuration(100);
-        mPatternLockView.setCorrectStateColor(ResourceUtils.getColor(this, R.color.white));
+        mPatternLockView.setCorrectStateColor(ResourceUtils.getColor(this, R.color.colorPrimary));
         mPatternLockView.setInStealthMode(false);
         mPatternLockView.setTactileFeedbackEnabled(true);
         mPatternLockView.setInputEnabled(true);

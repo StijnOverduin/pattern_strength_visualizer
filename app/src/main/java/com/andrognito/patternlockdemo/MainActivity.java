@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -35,8 +36,11 @@ public class MainActivity extends AppCompatActivity {
     private Map<PatternLockView.Dot, String> suggestionNodes = new HashMap<>();
     private Map<Pair<PatternLockView.Dot, PatternLockView.Dot>, ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>>> corner = new HashMap<>();
     private ArrayList<PatternLockView.Dot> cornerNodes = new ArrayList<>();
-
+    private boolean suggestionFunctionSwitch = true;
     private PatternLockViewListener mPatternLockViewListener = new PatternLockViewListener() {
+
+
+        //Function that gets fired after the user touches the first node of the pattern.
         @Override
         public void onStarted() {
             Log.d(getClass().getName(), "Pattern drawing started");
@@ -49,39 +53,25 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        //Function that updates everytime the users picks a new node.
         @Override
         public void onProgress(List<PatternLockView.Dot> progressPattern) {
             Log.d(getClass().getName(), "Pattern progress: " +
                     PatternLockUtils.patternToString(mPatternLockView, progressPattern));
-            TextView patternInfo = (TextView) findViewById(R.id.patternText);
+            //TextView patternInfo = (TextView) findViewById(R.id.patternText);
             //patternInfo.setText("" + progressPattern);
-            ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
-            TextView strengthText = (TextView) findViewById(R.id.strengthText);
-
-//            if(progressPattern.size() <= 2) {
-//                progressBar.setProgress(33);
-//                progressBar.getProgressDrawable().setColorFilter(
-//                        Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
-//                strengthText.setText("WEAK");
-//            } else if(progressPattern.size() <= 4) {
-//                progressBar.setProgress(67);
-//                progressBar.getProgressDrawable().setColorFilter(
-//                        Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
-//                strengthText.setText("MEDIUM");
-//            } else {
-//                progressBar.setProgress(100);
-//                progressBar.getProgressDrawable().setColorFilter(
-//                        Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
-//                strengthText.setText("STRONG");
-//            }
         }
 
+
+        //Function that fires when the user completes their pattern by letting go of the screen.
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         @Override
         public void onComplete(List<PatternLockView.Dot> pattern) {
             TextView patternInfo = (TextView) findViewById(R.id.patternText);
             Log.d(getClass().getName(), "Pattern complete: " +
                     PatternLockUtils.patternToString(mPatternLockView, pattern));
+
+            //Refresh button that resets MainActivity
             Button button = (Button) findViewById(R.id.refreshBtn);
             button.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
@@ -91,13 +81,13 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 }
             });
-           // TextView debugInfo = (TextView) findViewById(R.id.debugText);
+
             double strength = calculateStrength(pattern);
+
             if(pattern.size() > 3) {
 
                 ProgressBar progressBar = (ProgressBar) findViewById(R.id.strengthMeter);
                 TextView strengthText = (TextView) findViewById(R.id.strengthText);
-                //strength = (strength / 20) * 100;
                 progressBar.setMax(14);
 
                 if(strength < 5.5) {
@@ -119,9 +109,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            //debugInfo.setText("" + strength);
+            CheckBox checkBox = (CheckBox) findViewById(R.id.checkBoxSuggestions);
+            suggestionFunctionSwitch = checkBox.isChecked();
 
-            if(pattern.size() > 3 && pattern.size() < 9 && strength < 12) {
+            //Suggestion only triggers when these constraints are met.
+            if(pattern.size() > 3 && pattern.size() < 9 && strength < 12 && suggestionFunctionSwitch) {
                 List<PatternLockView.Dot> reachable = reachableNodes(pattern);
                 PatternLockView.Dot suggestion = giveSuggestion(pattern, reachable);
                 patternInfo.setText("Suggested you add the: " + suggestionNodes.get(suggestion));
@@ -136,6 +128,40 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    //Creates the MainActiviy and configures the settings for the patternLockView such as the number and color of the nodes.
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setContentView(R.layout.activity_main);
+        CheckBox checkBox = (CheckBox) findViewById(R.id.checkBoxSuggestions);
+        checkBox.setChecked(true);
+        makeNodeMap();
+        makeSuggestionMap();
+        makeCrossSectionsCorner();
+        makeCrossSectionsSideMiddle();
+        makeCrossSectionsMiddle();
+        makeCornerList();
+        mPatternLockView = (PatternLockView) findViewById(R.id.patter_lock_view);
+        mPatternLockView.setDotCount(3);
+        mPatternLockView.setDotSelectedSize((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_dot_selected_size));
+        mPatternLockView.setPathWidth((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_path_width));
+        mPatternLockView.setAspectRatioEnabled(true);
+        mPatternLockView.setAspectRatio(PatternLockView.AspectRatio.ASPECT_RATIO_HEIGHT_BIAS);
+        mPatternLockView.setViewMode(PatternLockView.PatternViewMode.CORRECT);
+        mPatternLockView.setDotAnimationDuration(150);
+        mPatternLockView.setPathEndAnimationDuration(100);
+        mPatternLockView.setCorrectStateColor(ResourceUtils.getColor(this, R.color.colorPrimary));
+        mPatternLockView.setInStealthMode(false);
+        mPatternLockView.setTactileFeedbackEnabled(true);
+        mPatternLockView.setInputEnabled(true);
+        mPatternLockView.addPatternLockListener(mPatternLockViewListener);
+
+    }
+
+    //Calculates a suggested node given the pattern and the reachable nodes.
     public PatternLockView.Dot giveSuggestion(List<PatternLockView.Dot> pattern, List<PatternLockView.Dot> reachable) {
         double highestStrength = 0;
         List<PatternLockView.Dot> sameStrength = new ArrayList<>();
@@ -144,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
             pattern.add(node);
             double newStrength = calculateStrength(pattern);
             if(highestStrength <= newStrength) {
-                if (Math.abs(highestStrength - newStrength) <= 2) {
+                if (Math.abs(highestStrength - newStrength) <= 1) {
                     sameStrength.add(node);
                 } else {
                     sameStrength.removeAll(sameStrength);
@@ -160,28 +186,31 @@ public class MainActivity extends AppCompatActivity {
         return suggestedDot;
     }
 
+
+    //Calculates the reachable nodes given the pattern.
     public List<PatternLockView.Dot> reachableNodes(List<PatternLockView.Dot> pattern) {
         PatternLockView.Dot lastNode = pattern.get(pattern.size() - 1);
-        Pair<PatternLockView.Dot, PatternLockView.Dot> oppositeLR = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row1Col2"));
-        Pair<PatternLockView.Dot, PatternLockView.Dot> oppositeUD = new Pair<>(allNodes.get("rowCol1"), allNodes.get("row2Col1"));
+        Pair<PatternLockView.Dot, PatternLockView.Dot> oppositeLR = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row1Col2")); //left and right middle node pair
+        Pair<PatternLockView.Dot, PatternLockView.Dot> oppositeUD = new Pair<>(allNodes.get("rowCol1"), allNodes.get("row2Col1")); //upper and lower middle node pair
         Map<String, PatternLockView.Dot> nodes;
         List<PatternLockView.Dot> possibleNodeList = new ArrayList<>();
-        if(cornerNodes.contains(lastNode)) {
+        if(cornerNodes.contains(lastNode)) { //is it a corner node?
             for(Map.Entry<String, PatternLockView.Dot> dot1 : allNodes.entrySet()) {
                 if(!pattern.contains(dot1.getValue())) {
                     if(!cornerNodes.contains(dot1.getValue())) {
                         possibleNodeList.add(dot1.getValue());
                     } else {
-                        if(lastNode.equals(allNodes.get("row0Col0"))) {
+                        if(lastNode.equals(allNodes.get("row0Col0"))) { //is it left upper corner?
                             nodes = allNodes;
-                        } else if(lastNode.equals(allNodes.get("row2Col0"))) {
-                            nodes = transformMap(allNodes, "h");
-                        } else if(lastNode.equals(allNodes.get("row0Col2"))) {
-                            nodes = transformMap(allNodes, "v");
+                        } else if(lastNode.equals(allNodes.get("row2Col0"))) { // is it left bottom corner?
+                            nodes = transformMap(allNodes, "h");  //transform all the nodes in the map horizontally
+                        } else if(lastNode.equals(allNodes.get("row0Col2"))) { //is it right upper corner?
+                            nodes = transformMap(allNodes, "v"); //transform all the nodes in the map vertically
                         } else {
-                            nodes = transformMap(transformMap(allNodes, "h"), "v");
+                            nodes = transformMap(transformMap(allNodes, "h"), "v");//transform all the nodes in the map horizontally then vertically
                         }
 
+                        //Checks for every corner if the conditions are met to reach the other corner.
                         if(dot1.getValue().equals(nodes.get("row2Col0")) && pattern.contains(nodes.get("row1Col0"))) {
                             possibleNodeList.add(dot1.getValue());
                         } else if(dot1.getValue().equals(nodes.get("row2Col2")) && pattern.contains(nodes.get("row1Col1"))) {
@@ -193,16 +222,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-        } else if(lastNode == allNodes.get("row1Col1")) {
+        } else if(lastNode == allNodes.get("row1Col1")) { //is it the middle node?
             for(Map.Entry<String, PatternLockView.Dot> dot1 : allNodes.entrySet()) {
-                if(!pattern.contains(dot1.getValue())) {
+                if(!pattern.contains(dot1.getValue())) { //check which nodes not in the pattern
                     possibleNodeList.add(dot1.getValue());
                 }
             }
 
-        } else {
+        } else { //nodes between corner nodes
                 for (Map.Entry<String, PatternLockView.Dot> dot1 : allNodes.entrySet()) {
                     if (!pattern.contains(dot1.getValue())) {
+                        //Check whether the conditions are met to reach the opposite node.
                         if((lastNode.equals(oppositeLR.first) && dot1.getValue().equals(oppositeLR.second)) || (lastNode.equals(oppositeLR.second) && dot1.getValue().equals(oppositeLR.first)) ||
                                 (lastNode.equals(oppositeUD.first) && dot1.getValue().equals(oppositeUD.second)) || (lastNode.equals(oppositeUD.second) && dot1.getValue().equals(oppositeUD.first))) {
                             if(pattern.contains(allNodes.get("row1Col1"))) {
@@ -218,6 +248,8 @@ public class MainActivity extends AppCompatActivity {
             return possibleNodeList;
     }
 
+
+    //Loops over the entries of the given map and transforms them either horizontally or vertically
     public Map<String, PatternLockView.Dot> transformMap(Map<String, PatternLockView.Dot> m, String type) {
         Map<String, PatternLockView.Dot> transormedMap = new HashMap<>();
         Pair<PatternLockView.Dot, PatternLockView.Dot> p;
@@ -240,34 +272,32 @@ public class MainActivity extends AppCompatActivity {
         return transormedMap;
     }
 
+    //Calculates the strength of a pattern given all the metrics
     public double calculateStrength(List<PatternLockView.Dot> pattern) {
         int passCountStr = passedTwiceStraight(pattern);
         int passCountDia = passedTwiceDiagonal(pattern);
+        int overlaps = passCountStr + passCountDia;
         double plen = patternLength(pattern);
         double nrDots = pattern.size();
         int crossCount = crossSections(pattern);
-        //double strength =  nrDots * (Math.log(plen + crossCount + passCountDia + passCountStr) / Math.log(2.0));
-        double strength =  (nrDots / 2) + (plen/nrDots) + Math.pow(crossCount, 2) + Math.pow((passCountDia + passCountStr), 2);
-        //double strength =  nrDots + Math.log(plen) + crossCount * 2 + (passCountDia + passCountStr) * 3;
-        //TextView debugInfo = (TextView) findViewById(R.id.debugText);
-        int overlapCount = passCountDia + passCountStr;
-        //debugInfo.setText("Overlaps = " + overlapCount + " Length = " + plen + " nrDots = " + nrDots + " Cross sections = " + crossCount + " strength: " + strength);
+        double strength =  (nrDots / 2) + (plen/nrDots) + Math.pow(crossCount, 2) + Math.pow((overlaps), 2);
 
         return strength;
     }
 
-    public int passedTwiceStraight(List<PatternLockView.Dot> progressPattern) {
+    //Function to count the amount of straight overlaps is the pattern.
+    public int passedTwiceStraight(List<PatternLockView.Dot> pattern) {
         int count = 0;
-        for(int i = 0; i + 1 < progressPattern.size(); i++) {
-            int resRow = progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow();
-            int resCol = progressPattern.get(i).getColumn() - progressPattern.get(i + 1).getColumn();
-            if (resRow == -2 || resRow == 2 ) {
-                if(progressPattern.get(i).getColumn() == progressPattern.get(i + 1).getColumn()) {
+        for(int i = 0; i + 1 < pattern.size(); i++) {
+            int resRow = pattern.get(i).getRow() - pattern.get(i + 1).getRow();
+            int resCol = pattern.get(i).getColumn() - pattern.get(i + 1).getColumn();
+            if (resRow == -2 || resRow == 2 ) { //difference of 2 in the row?
+                if(pattern.get(i).getColumn() == pattern.get(i + 1).getColumn()) { //nodes in the same column?
                     count += 1;
                 }
             }
             if (resCol == 2 || resCol == -2) {
-                if(progressPattern.get(i).getRow() == progressPattern.get(i + 1).getRow()) {
+                if(pattern.get(i).getRow() == pattern.get(i + 1).getRow()) {
                     count += 1;
                 }
             }
@@ -275,17 +305,19 @@ public class MainActivity extends AppCompatActivity {
         return count;
     }
 
-    public int passedTwiceDiagonal(List<PatternLockView.Dot> progressPattern) {
+
+    //Function to count the number of diagonal overlaps.
+    public int passedTwiceDiagonal(List<PatternLockView.Dot> pattern) {
         int count = 0;
         PatternLockView.Dot leftTop = this.allNodes.get("row0Col0");
         PatternLockView.Dot leftBot = this.allNodes.get("row2Col0");
         PatternLockView.Dot rightTop = this.allNodes.get("row0Col2");
         PatternLockView.Dot rightBot = this.allNodes.get("row2Col2");
-        for (int i = 0; i + 1 < progressPattern.size(); i++) {
-            if (progressPattern.get(i).equals(leftTop) && progressPattern.get(i + 1).equals(rightBot) || progressPattern.get(i).equals(rightBot) && progressPattern.get(i + 1).equals(leftTop)) {
+        for (int i = 0; i + 1 < pattern.size(); i++) {
+            if (pattern.get(i).equals(leftTop) && pattern.get(i + 1).equals(rightBot) || pattern.get(i).equals(rightBot) && pattern.get(i + 1).equals(leftTop)) { //checks whether two following nodes in the pattern are opposite corners
                 count += 1;
             }
-            if (progressPattern.get(i).equals(rightTop) && progressPattern.get(i + 1).equals(leftBot) || progressPattern.get(i).equals(leftBot) && progressPattern.get(i + 1).equals(rightTop)) {
+            if (pattern.get(i).equals(rightTop) && pattern.get(i + 1).equals(leftBot) || pattern.get(i).equals(leftBot) && pattern.get(i + 1).equals(rightTop)) { //checks whether two following nodes in the pattern are opposite corners
                 count += 1;
             }
         }
@@ -293,21 +325,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public double patternLength(List<PatternLockView.Dot> progressPattern) {
+    //Calculates the length of the given pattern.
+    public double patternLength(List<PatternLockView.Dot> pattern) {
         double plen = 0;
 
-        for(int i = 0; i + 1 < progressPattern.size(); i++) {
-            if(progressPattern.get(i).getRow() == progressPattern.get(i + 1).getRow()) {
-                plen += Math.abs(progressPattern.get(i).getColumn() - progressPattern.get(i + 1).getColumn());
-            } else if(progressPattern.get(i).getColumn() == progressPattern.get(i + 1).getColumn()) {
-                plen += Math.abs(progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow());
-            } else if(Math.abs(progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow()) == 1) {
+        for(int i = 0; i + 1 < pattern.size(); i++) {
+            if(pattern.get(i).getRow() == pattern.get(i + 1).getRow()) { //same row?
+                plen += Math.abs(pattern.get(i).getColumn() - pattern.get(i + 1).getColumn()); //difference in column
+            } else if(pattern.get(i).getColumn() == pattern.get(i + 1).getColumn()) { //same column?
+                plen += Math.abs(pattern.get(i).getRow() - pattern.get(i + 1).getRow()); //difference in row
+            } else if(Math.abs(pattern.get(i).getRow() - pattern.get(i + 1).getRow()) == 1) { //short diagonal
                 plen += Math.sqrt(2);
-            } else if(Math.abs(progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow()) == 1 && Math.abs(progressPattern.get(i).getColumn() - progressPattern.get(i + 1).getColumn()) == 2) {
+            } else if(Math.abs(pattern.get(i).getRow() - pattern.get(i + 1).getRow()) == 1 && Math.abs(pattern.get(i).getColumn() - pattern.get(i + 1).getColumn()) == 2) { //long diagonal (difference of 1 in the row and 2 in the column
                 plen += Math.sqrt(5);
-            } else if (Math.abs(progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow()) == 2 && Math.abs(progressPattern.get(i).getColumn() - progressPattern.get(i + 1).getColumn()) == 1) {
+            } else if (Math.abs(pattern.get(i).getRow() - pattern.get(i + 1).getRow()) == 2 && Math.abs(pattern.get(i).getColumn() - pattern.get(i + 1).getColumn()) == 1) { //long diagonal (difference of 2 in the row and 1 in the column
                 plen += Math.sqrt(5);
-            } else if (Math.abs(progressPattern.get(i).getRow() - progressPattern.get(i + 1).getRow()) == 2 && Math.abs(progressPattern.get(i).getColumn() - progressPattern.get(i + 1).getColumn()) == 2) {
+            } else if (Math.abs(pattern.get(i).getRow() - pattern.get(i + 1).getRow()) == 2 && Math.abs(pattern.get(i).getColumn() - pattern.get(i + 1).getColumn()) == 2) {//diagonal from corner to corner
                 plen += 2*Math.sqrt(2);
             }
         }
@@ -315,63 +348,51 @@ public class MainActivity extends AppCompatActivity {
         return plen;
      }
 
-    public int crossSections(List<PatternLockView.Dot> progressPattern) {
+
+     // Counting the amount of intersections in the pattern.
+    public int crossSections(List<PatternLockView.Dot> pattern) {
        int count = 0;
-        //TextView debugInfo = (TextView) findViewById(R.id.debugText);
-       for(int i = 0; i + 1 < progressPattern.size(); i++) {
-           for(int j = 0; j + 1 < progressPattern.size(); j++ ) {
-               PatternLockView.Dot node1b = progressPattern.get(i);
-               PatternLockView.Dot node1e = progressPattern.get(i + 1);
-               PatternLockView.Dot node2b = progressPattern.get(j);
-               PatternLockView.Dot node2e = progressPattern.get(j + 1);
+       for(int i = 0; i + 1 < pattern.size(); i++) {
+           for(int j = 0; j + 1 < pattern.size(); j++ ) {
+               PatternLockView.Dot node1b = pattern.get(i);
+               PatternLockView.Dot node1e = pattern.get(i + 1);
+               PatternLockView.Dot node2b = pattern.get(j);
+               PatternLockView.Dot node2e = pattern.get(j + 1);
                Pair<PatternLockView.Dot, PatternLockView.Dot> line1Pair = new Pair<>(node1b, node1e);
                Pair<PatternLockView.Dot, PatternLockView.Dot> line2Pair = new Pair<>(node2b, node2e);
-               if(!equalPairsUndirected(line1Pair, line2Pair)) {
-                   for(Map.Entry<Pair<PatternLockView.Dot, PatternLockView.Dot>, ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>>> entry : corner.entrySet()) {
+               if(!equalPairsUndirected(line1Pair, line2Pair)) { //lines are not the same?
+                   for(Map.Entry<Pair<PatternLockView.Dot, PatternLockView.Dot>, ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>>> entry : corner.entrySet()) { //Loop through the map with all the unique lines that cause unique intersections.
+                       //Series of if statements that check whether the line, be it a transformed one or not, is in the Map. If it is check if the second line is in the values of that entry.
                            if(equalPairsDirected(entry.getKey(), line1Pair)) {
                                if(pairInArray(entry.getValue(), line2Pair)) {
-                                   //debugInfo.setText(debugInfo.getText() + "hello1" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
-                           } else if(equalPairsDirected(transformPairverhor(entry.getKey(), "v"), line1Pair)) {
-                               //debugInfo.setText(debugInfo.getText() + "hello2");
-                               if (pairInArray(transformPairArray(entry.getValue(), "v"), line2Pair)) {
-                                   //debugInfo.setText(debugInfo.getText() + "hello2" + " i = " + i + " j = " + j);
+                           } else if(equalPairsDirected(transformPairverhor(entry.getKey(), "v"), line1Pair)) { //Transform the line from the map vertically and check if the line from the pattern matches.
+                               if (pairInArray(transformPairArray(entry.getValue(), "v"), line2Pair)) { //check if the second line from the pattern is in the values of that map entry.
                                    count += 1;
                                }
                            } else if(equalPairsDirected(transformPairverhor(entry.getKey(), "h"), line1Pair)) {
-                               //debugInfo.setText(debugInfo.getText() + "hello2");
                                if(pairInArray(transformPairArray(entry.getValue(), "h"), line2Pair)) {
-                                   //debugInfo.setText(debugInfo.getText() + "hello3" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
-                           } else if(equalPairsDirected(transformPairverhor(transformPairDiag(entry.getKey(), "lbtr"), "v"), line1Pair)) {
-                               //debugInfo.setText(debugInfo.getText() + "hello2");
+                           } else if(equalPairsDirected(transformPairverhor(transformPairDiag(entry.getKey(), "lbtr"), "v"), line1Pair)) { //lbtr = left bot top right diagonal tranform.
                                if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "lbtr"), "v"), line2Pair)) {
-                                  // debugInfo.setText(debugInfo.getText() + "hello4" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
                            } else if(equalPairsDirected(transformPairverhor(transformPairDiag(entry.getKey(), "lbtr"), "h"), line1Pair)) {
-                               //debugInfo.setText(debugInfo.getText() + "hello2");
                                if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "lbtr"), "h"), line2Pair)) {
-                                  // debugInfo.setText(debugInfo.getText() + "hello5" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
                            } else if(equalPairsDirected(transformPairDiag(transformPairDiag(entry.getKey(), "lbtr"), "rbtl"), line1Pair)) {
-                               //debugInfo.setText(debugInfo.getText() + "hello2");
                                if(pairInArray(transformPairArray(transformPairArray(entry.getValue(), "lbtr"), "rbtl"), line2Pair)) {
-                                 //  debugInfo.setText(debugInfo.getText() + "hello6" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
                            } else if(equalPairsDirected(transformPairDiag(entry.getKey(), "lbtr"), line1Pair)) {
                                if (pairInArray(transformPairArray(entry.getValue(), "lbtr"), line2Pair)) {
-                                 //  debugInfo.setText(debugInfo.getText() + "hello7" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
-                           } else if(equalPairsDirected(transformPairDiag(entry.getKey(), "rbtl"), line1Pair)) {
+                           } else if(equalPairsDirected(transformPairDiag(entry.getKey(), "rbtl"), line1Pair)) { //rbtl = right bot top left diagonal transform.
                                if(pairInArray(transformPairArray(entry.getValue(), "rbtl"), line2Pair)) {
-                                   //debugInfo.setText("transPair: " + entry.getValue() + " transarr: " + transformPairArray(entry.getValue(), "rbtl"));
-                                  // debugInfo.setText(debugInfo.getText() + "hello8" + " i = " + i + " j = " + j);
                                    count += 1;
                                }
                            }
@@ -383,11 +404,13 @@ public class MainActivity extends AppCompatActivity {
 
            }
 
-       count = count/2;
+       count = count/2; //dividing by 2 because we counted every intersection twice.
 
        return count;
     }
 
+
+    //Checks if 2 lines are the same disregarding direction.
     public boolean equalPairsUndirected(Pair<PatternLockView.Dot, PatternLockView.Dot> pairOne, Pair<PatternLockView.Dot, PatternLockView.Dot> pairTwo) {
         boolean result = false;
 
@@ -400,6 +423,8 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
+
+    //Checks if 2 lines are the same including direction
     public boolean equalPairsDirected(Pair<PatternLockView.Dot, PatternLockView.Dot> pairOne, Pair<PatternLockView.Dot, PatternLockView.Dot> pairTwo) {
         boolean result = false;
 
@@ -410,6 +435,7 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
+    //Checks if the given pair is in the given array. Needs to disregard direction so equalPairsUndirected is used.
     public boolean pairInArray(ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> array, Pair<PatternLockView.Dot, PatternLockView.Dot> pair) {
         boolean result = false;
 
@@ -423,13 +449,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    //Transforms a pair array horizontally, vertically or diagonally depending on the given type.
     public ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> transformPairArray(ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> array, String type) {
         ArrayList<Pair<PatternLockView.Dot, PatternLockView.Dot>> transformed = new ArrayList<>();
         for(Pair<PatternLockView.Dot, PatternLockView.Dot> pair : array) {
-            if(type.equals("h") || type.equals("v")) {
+            if(type.equals("h") || type.equals("v")) { //Either horizontal or diagonal tansform.
                 Pair<PatternLockView.Dot, PatternLockView.Dot> transPair = transformPairverhor(pair, type);
                 transformed.add(transPair);
-            } else {
+            } else { //will be transformed diagonally
                 Pair<PatternLockView.Dot, PatternLockView.Dot> transPair = transformPairDiag(pair, type);
                 transformed.add(transPair);
             }
@@ -439,6 +466,8 @@ public class MainActivity extends AppCompatActivity {
         return transformed;
     }
 
+
+    //Tranforms pairs (lines) either vertically or horizontally
     public Pair<PatternLockView.Dot, PatternLockView.Dot> transformPairverhor(Pair<PatternLockView.Dot, PatternLockView.Dot> pair, String type) {
         int firstn;
         int secondn;
@@ -448,6 +477,8 @@ public class MainActivity extends AppCompatActivity {
         if(type.equals("v")) {
             firstn = pair.first.getColumn();
             secondn = pair.second.getColumn();
+
+            // For both nodes in the pair checks whether the column is 2 or 0, if that is the case 0 becomes 2 and 2 becomes 0.
             if(firstn == 2 || firstn == 0) {
                 if (firstn == 2) {
                     firstDot = new PatternLockView.Dot(pair.first.getRow(), 0);
@@ -465,6 +496,8 @@ public class MainActivity extends AppCompatActivity {
         } else if (type.equals("h")){
             firstn = pair.first.getRow();
             secondn = pair.second.getRow();
+
+            // Same for vertical but now for the row.
             if (firstn == 2 || firstn == 0) {
                 if (firstn == 2) {
                     firstDot = new PatternLockView.Dot(0, pair.first.getColumn());
@@ -485,6 +518,8 @@ public class MainActivity extends AppCompatActivity {
         return transformed;
     }
 
+
+    //Transforms a pair (line) diagonally.
     public Pair<PatternLockView.Dot, PatternLockView.Dot> transformPairDiag(Pair<PatternLockView.Dot, PatternLockView.Dot> pair, String type) {
         int firstCol = pair.first.getColumn();
         int secondCol = pair.second.getColumn();
@@ -493,7 +528,9 @@ public class MainActivity extends AppCompatActivity {
         PatternLockView.Dot firstDot = pair.first;
         PatternLockView.Dot secondDot = pair.second;
 
-        if(type.equals("lbtr")) {
+        if(type.equals("lbtr")) { //ltbr = left bot top right
+
+            // Differnt checks to determine what has to be changed for the node to be transformed.
             if (firstRow == 1 && firstCol == 0 || firstRow == 0 && firstCol == 1 ) {
                 firstDot = new PatternLockView.Dot(firstRow + 1, firstCol + 1);
             } else if (firstRow == 0 && firstCol == 0){
@@ -513,7 +550,8 @@ public class MainActivity extends AppCompatActivity {
             } else if(secondRow == 2 && secondCol == 2 ){
                 secondDot = new PatternLockView.Dot(0, 0);
             }
-        } else if(type.equals("rbtl")){
+        } else if(type.equals("rbtl")){ // rbtl = right bot top left
+            // Same checks but now for the other diagonal.
             if (firstRow == 0 && firstCol == 1 || firstRow == 1 && firstCol == 2) {
                 firstDot = new PatternLockView.Dot(firstRow + 1, firstCol - 1);
             } else if (firstRow == 0 && firstCol == 2){
@@ -539,6 +577,8 @@ public class MainActivity extends AppCompatActivity {
         return transformed;
     }
 
+
+    // Make a map with all the nodes in it.
     public void makeNodeMap() {
         PatternLockView.Dot row0Col0 = new PatternLockView.Dot(0 ,0);
         PatternLockView.Dot row0Col1 = new PatternLockView.Dot(0 ,1);
@@ -561,6 +601,8 @@ public class MainActivity extends AppCompatActivity {
         this.allNodes.put("row2Col2", row2Col2);
     }
 
+
+    // Makes a map of the corners which makes it easier to check if a node is a corner node.
     public void makeCornerList () {
         PatternLockView.Dot row0Col0 = new PatternLockView.Dot(0 ,0);
         PatternLockView.Dot row2Col0 = new PatternLockView.Dot(2 ,0);
@@ -572,6 +614,8 @@ public class MainActivity extends AppCompatActivity {
         cornerNodes.add(row2Col2);
     }
 
+
+    //Adds the unigue lines of the corner to the map that are needed to calculate the number of unique intersections.
     public void makeCrossSectionsCorner() {
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1 = new Pair<>(allNodes.get("row0Col0"), allNodes.get("row1Col1"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross1 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
@@ -624,6 +668,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    //Adds the unique lines to the map that are needed to calculate the unique intersections of the nodes between the corner nodes.
     public void makeCrossSectionsSideMiddle() {
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1 = new Pair<>(allNodes.get("row1Col0"), allNodes.get("row0Col1"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross1 = new Pair<>(allNodes.get("row2Col1"), allNodes.get("row0Col0"));
@@ -682,6 +727,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    //Adds the unique lines to the map that are needed to calculate the unique intersections of the middle node.
     public void makeCrossSectionsMiddle() {
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1 = new Pair<>(allNodes.get("row1Col1"), allNodes.get("row0Col0"));
         Pair<PatternLockView.Dot, PatternLockView.Dot> option1cross1 = new Pair<>(allNodes.get("row2Col0"), allNodes.get("row0Col1"));
@@ -702,6 +749,7 @@ public class MainActivity extends AppCompatActivity {
         corner.put(option2, option2array);
     }
 
+    //Map to display the nodes in text for the suggestion function.
     public void makeSuggestionMap() {
         PatternLockView.Dot row0Col0 = new PatternLockView.Dot(0 ,0);
         PatternLockView.Dot row0Col1 = new PatternLockView.Dot(0 ,1);
@@ -724,34 +772,4 @@ public class MainActivity extends AppCompatActivity {
         this.suggestionNodes.put(row2Col2, "bottom right corner node");
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_main);
-        makeNodeMap();
-        makeSuggestionMap();
-        makeCrossSectionsCorner();
-        makeCrossSectionsSideMiddle();
-        makeCrossSectionsMiddle();
-        makeCornerList();
-        mPatternLockView = (PatternLockView) findViewById(R.id.patter_lock_view);
-        mPatternLockView.setDotCount(3);
-        //mPatternLockView.setDotNormalSize((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_dot_size));
-        mPatternLockView.setDotSelectedSize((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_dot_selected_size));
-        mPatternLockView.setPathWidth((int) ResourceUtils.getDimensionInPx(this, R.dimen.pattern_lock_path_width));
-        mPatternLockView.setAspectRatioEnabled(true);
-        mPatternLockView.setAspectRatio(PatternLockView.AspectRatio.ASPECT_RATIO_HEIGHT_BIAS);
-        mPatternLockView.setViewMode(PatternLockView.PatternViewMode.CORRECT);
-        mPatternLockView.setDotAnimationDuration(150);
-        mPatternLockView.setPathEndAnimationDuration(100);
-        mPatternLockView.setCorrectStateColor(ResourceUtils.getColor(this, R.color.colorPrimary));
-        mPatternLockView.setInStealthMode(false);
-        mPatternLockView.setTactileFeedbackEnabled(true);
-        mPatternLockView.setInputEnabled(true);
-        mPatternLockView.addPatternLockListener(mPatternLockViewListener);
-
-    }
 }

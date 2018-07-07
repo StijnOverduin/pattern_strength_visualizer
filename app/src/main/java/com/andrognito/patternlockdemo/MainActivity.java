@@ -1,3 +1,7 @@
+//NOTICE: This file has been changed from the source
+
+
+
 package com.andrognito.patternlockdemo;
 
 import android.content.Intent;
@@ -153,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
         mPatternLockView.setViewMode(PatternLockView.PatternViewMode.CORRECT);
         mPatternLockView.setDotAnimationDuration(150);
         mPatternLockView.setPathEndAnimationDuration(100);
-        mPatternLockView.setCorrectStateColor(ResourceUtils.getColor(this, R.color.colorPrimary));
+        mPatternLockView.setCorrectStateColor(ResourceUtils.getColor(this, R.color.white));
         mPatternLockView.setInStealthMode(false);
         mPatternLockView.setTactileFeedbackEnabled(true);
         mPatternLockView.setInputEnabled(true);
